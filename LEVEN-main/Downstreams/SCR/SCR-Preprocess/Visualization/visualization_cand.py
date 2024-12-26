@@ -1,7 +1,7 @@
 import os
 import json
 import matplotlib.pyplot as plt
-import numpy as np
+import jsonlines
 def get_string_lengths_from_json(folder_path):
     """
     Traverse through the folder to read JSON files and collect string lengths.
@@ -28,11 +28,12 @@ def get_string_lengths_from_json(folder_path):
 
 def get_length_from_a_json_file(path):
     # Load JSON data
-    with open('data.json', 'r') as file:
-        data = json.load(file)  # Assume this is a list of dictionaries
-
+    data=[]
+    with jsonlines.open(path, 'r') as reader:
+        for obj in reader:
+            data.append(obj)
     # Specify the key whose value length you want
-    target_key = 'specific_item'
+    target_key = 'q'
 
     # Extract lengths of the specific item
     lengths = []
@@ -43,8 +44,9 @@ def get_length_from_a_json_file(path):
             lengths.append(None)  # Handle missing keys or non-string values
 
     # Print results
-    for idx, length in enumerate(lengths, start=1):
-        print(f"Dict {idx}: Length of '{target_key}' = {length}")
+    #for idx, length in enumerate(lengths, start=1):
+        #print(f"Dict {idx}: Length of '{target_key}' = {length}")
+    return lengths
 
 def visualize_string_lengths(string_lengths):
     """
@@ -56,7 +58,7 @@ def visualize_string_lengths(string_lengths):
     
     
     plt.figure(figsize=(10, 6))
-    plt.hist(string_lengths,bins=30,color='skyblue',edgecolor='black',rwidth=0.8)
+    plt.hist(string_lengths,bins=30,color='skyblue',edgecolor='black',rwidth=0.8,density=True)
     plt.xlim(0,20000)
     #plt.xticks(ticks=np.arange(0,20000,1000),rotation=45)
     plt.xlabel("Length of Documents")
@@ -64,6 +66,18 @@ def visualize_string_lengths(string_lengths):
     plt.title("Visualization of Candidates Lengths in LeCaRDv1")
     plt.tight_layout()
     plt.savefig('histogram_v1_candidates.pdf', format='pdf')
+
+def visualize_string_lengths_query(string_lengths):
+    plt.figure(figsize=(10, 6))
+    plt.hist(string_lengths,bins=30,color='skyblue',edgecolor='black',rwidth=0.8,density=True)
+    plt.xlim(0,1000)
+    #plt.xticks(ticks=np.arange(0,20000,1000),rotation=45)
+    #plt.gca().yaxis.set_major_formatter(plt.FuncFormatter(lambda x, _: f'{x * 100:.0f}%'))
+    plt.xlabel("Length of Documents")
+    plt.ylabel("Percentage")
+    plt.title("Visualization of Queries Lengths in LeCaRDv1")
+    plt.tight_layout()
+    plt.savefig('histogram_v1_queries.pdf', format='pdf')
 
 # Main execution
 if __name__ == "__main__":
@@ -74,4 +88,14 @@ if __name__ == "__main__":
         visualize_string_lengths(string_lengths)
     else:
         print("No JSON files found or no string items in the JSON files.")
+
+    #Visualize Lengths of the query file
+    path='LEVEN-main/Downstreams/SCR/SCR-Preprocess/input_data/data/query/query.json'
+    lengths=get_length_from_a_json_file(path)
+
+    if lengths:
+        visualize_string_lengths_query(lengths)
+    else:
+        print("No JSON files found or no string items in the JSON files.")
+
     
