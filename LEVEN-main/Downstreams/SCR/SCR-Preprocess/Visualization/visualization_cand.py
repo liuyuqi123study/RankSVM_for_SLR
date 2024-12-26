@@ -1,7 +1,7 @@
 import os
 import json
 import matplotlib.pyplot as plt
-
+import numpy as np
 def get_string_lengths_from_json(folder_path):
     """
     Traverse through the folder to read JSON files and collect string lengths.
@@ -12,8 +12,7 @@ def get_string_lengths_from_json(folder_path):
     Returns:
         dict: A dictionary where keys are file paths, and values are lists of string lengths.
     """
-    string_lengths = {}
-    
+    lengths = []
     for root, dirs, files in os.walk(folder_path):
         for file in files:
             if file.endswith('.json'):
@@ -21,15 +20,31 @@ def get_string_lengths_from_json(folder_path):
                 with open(file_path, 'r') as f:
                     try:
                         data = json.load(f)
-                        lengths = []
-                        for key, value in data.items():
-                            if isinstance(value, str):
-                                lengths.append(len(value))
-                        string_lengths[file_path] = lengths
+                        lengths.append(len(data['ajjbqk']))
                     except json.JSONDecodeError:
                         print(f"Error decoding JSON in file: {file_path}")
     
-    return string_lengths
+    return lengths
+
+def get_length_from_a_json_file(path):
+    # Load JSON data
+    with open('data.json', 'r') as file:
+        data = json.load(file)  # Assume this is a list of dictionaries
+
+    # Specify the key whose value length you want
+    target_key = 'specific_item'
+
+    # Extract lengths of the specific item
+    lengths = []
+    for item in data:
+        if target_key in item and isinstance(item[target_key], str):  # Check if the key exists and is a string
+            lengths.append(len(item[target_key]))
+        else:
+            lengths.append(None)  # Handle missing keys or non-string values
+
+    # Print results
+    for idx, length in enumerate(lengths, start=1):
+        print(f"Dict {idx}: Length of '{target_key}' = {length}")
 
 def visualize_string_lengths(string_lengths):
     """
@@ -38,23 +53,25 @@ def visualize_string_lengths(string_lengths):
     Args:
         string_lengths (dict): A dictionary where keys are file paths, and values are lists of string lengths.
     """
-    file_names = list(string_lengths.keys())
-    lengths = [sum(lengths) for lengths in string_lengths.values()]
+    
     
     plt.figure(figsize=(10, 6))
-    plt.barh(file_names, lengths, color='skyblue')
-    plt.xlabel("Total Length of Strings")
-    plt.ylabel("File Paths")
-    plt.title("Visualization of String Lengths in JSON Files")
+    plt.hist(string_lengths,bins=30,color='skyblue',edgecolor='black',rwidth=0.8)
+    plt.xlim(0,20000)
+    #plt.xticks(ticks=np.arange(0,20000,1000),rotation=45)
+    plt.xlabel("Length of Documents")
+    plt.ylabel("Number")
+    plt.title("Visualization of Candidates Lengths in LeCaRDv1")
     plt.tight_layout()
-    plt.show()
+    plt.savefig('histogram_v1_candidates.pdf', format='pdf')
 
 # Main execution
 if __name__ == "__main__":
-    folder_path = "path/to/your/folder"  # Replace with the path to your folder
+    folder_path = "LEVEN-main/Downstreams/SCR/SCR-Experiment/input_data/candidates"  # Replace with the path to your folder
     string_lengths = get_string_lengths_from_json(folder_path)
     
     if string_lengths:
         visualize_string_lengths(string_lengths)
     else:
         print("No JSON files found or no string items in the JSON files.")
+    
