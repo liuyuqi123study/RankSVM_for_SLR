@@ -1,9 +1,12 @@
-This is the code base for our technical report <b>RankMamba, Benchmarking Mamba's Document Ranking Performance in the Era of Transformers</b>, https://arxiv.org/abs/2403.18276
+# Rank Mamba
 
-#### Required packages
+This is the code is adapted from [https://github.com/zhichaoxu-shufe/RankMamba](https://github.com/zhichaoxu-shufe/RankMamba)base for our technical report <b>RankMamba, Benchmarking Mamba's Document Ranking Performance in the Era of Transformers</b>, [https://arxiv.org/abs/2403.18276](https://arxiv.org/abs/2403.18276)
+
+## Required packages
 install required packages @requirements.txt, note `CUDA Version > 12.1` and install corresponding `torch` version
 
-To run Mamba models, following instructions at the Mamba Repo https://github.com/state-spaces/mamba to install
+To run Mamba models, following instructions at the Mamba Repo [https://github.com/state-spaces/mamba](https://github.com/state-spaces/mamba) to install
+
 ```
 mamba-ssm==1.2.0
 causal-conv1d==1.2.0

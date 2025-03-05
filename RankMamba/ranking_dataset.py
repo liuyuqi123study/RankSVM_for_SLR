@@ -116,7 +116,7 @@ class LCEDatasetCausalLM(IterableDataset):
                     pos_num+=int(label)
         print(len(self.data))
         print(mode,'positive num:',pos_num)
-    
+    #Follow the same concatenation
     def __len__(self):
         return len(self.data)
     
