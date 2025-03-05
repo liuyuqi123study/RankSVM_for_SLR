@@ -2,14 +2,14 @@ CUDA_VISIBLE_DEVICES=0 python train_document.py \
 --model_name_or_path state-spaces/mamba-130m-hf \
 --tokenizer state-spaces/mamba-130m-hf \
 --triples dataset.csv \
---train_batch_size 8 \
+--train_batch_size 16 \
 --fold 4 \
 --cand_length 500 \
---query_length 300 \
+--query_length 200 \
 --input_dir /content/drive/MyDrive/LEVEN-main/Downstreams/SCR/SCR-Experiment/input_data \
 --eval_dataset dev, \
 --do_train \
 --eval_batch_size 16 \
---epochs 5 \
+--epochs 1 \
 --flash_attention \
 --do_eval \
