@@ -258,7 +258,7 @@ def train_classification(
                     predictions={}
                     for res in res_scores:
                         
-                            print(res[1])
+        
                             if res[0][0] not in predictions:
                                 predictions[res[0][0]] = []
                             predictions[res[0][0]].append((res[0][1], res[1]))
