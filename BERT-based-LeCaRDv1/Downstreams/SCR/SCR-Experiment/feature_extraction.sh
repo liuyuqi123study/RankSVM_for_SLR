@@ -1,0 +1,1 @@
+python /content/drive/MyDrive/LEVEN-main/Downstreams/SCR/SCR-Experiment/feature_extraction.py --config /content/drive/MyDrive/LEVEN-main/Downstreams/SCR/SCR-Experiment/config/pairwise/LecardBert.config --gpu 0
