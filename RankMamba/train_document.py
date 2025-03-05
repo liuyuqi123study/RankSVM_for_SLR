@@ -271,7 +271,7 @@ def train_classification(
                 fout.close()
         
             #Save the model
-            save_dest = os.path.join(args.save_dest, str(args.fold),str(epoch_id),f"cand_length_{args.cand_length}_leaarning_rate_1_{model_save_name}_batch_size_{args.train_batch_size}")
+            save_dest = os.path.join(args.save_dest, str(args.fold),f"cand_length_{args.cand_length}_learning_rate_{args.lr}_{model_save_name}_batch_size_{args.train_batch_size}")
             print(f"saving to {save_dest}")
             save_model(model=model, save_dest=save_dest)
             tokenizer.save_pretrained(save_dest)
