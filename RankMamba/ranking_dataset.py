@@ -103,9 +103,9 @@ class LCEDatasetCausalLM(IterableDataset):
                         self.query2posneg[str(query["ridx"])]["neg"].append(len(self.data))
             
             
-                    document = self.tokenizer(cand['ajjbqk'], truncation=True, max_length=args.cand_length)  # hardcoded
+                    document = self.tokenizer('document:'+cand['ajjbqk'], truncation=True, max_length=args.cand_length)  # hardcoded
                     truncated_document = self.tokenizer.decode(document.input_ids, skip_special_tokens=True, clean_up_tokenization_spaces=True)
-                    query_token=self.tokenizer(que, truncation=True, max_length=args.query_length)  # hardcoded
+                    query_token=self.tokenizer('query:'+que, truncation=True, max_length=args.query_length)  # hardcoded
                     truncated_query=self.tokenizer.decode(query_token.input_ids, skip_special_tokens=True, clean_up_tokenization_spaces=True)
                     input_pretokenized=truncated_document+self.sep_token+truncated_query+self.tokenizer.eos_token
                     self.data.append({
@@ -114,7 +114,6 @@ class LCEDatasetCausalLM(IterableDataset):
                         'index':(query['ridx'],fn.split('.')[0])
                     })
                     pos_num+=int(label)
-        print(len(self.data))
         print(mode,'positive num:',pos_num)
     #Follow the same concatenation
     def __len__(self):
