@@ -1,0 +1,1 @@
+python feature_extraction_MAMBA.py --cand_length 500 --query_length 800 --load_from_trained True --model_ckpt ckpt/0/cand_length_500_learning_rate_2e-5_state-spaces-mamba-130m-hf_batch_size_16/pytorch_model.bin --do_train False

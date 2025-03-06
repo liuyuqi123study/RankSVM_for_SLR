@@ -1,6 +1,14 @@
 import argparse
 import logging
 import os 
+import torch
+from RankMamba.train_document import configure_model_and_tokenizer
+from RankMamba.train_document import print_trainable_parameters
+from RankMamba.train_document import load_from_trained
+from RankMamba.train_document import configure_training_dataset
+
+from transformers import AdamW
+from RankMamba.train_document import train_classification
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -54,6 +62,7 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
     args.save_dest = os.path.join(args.experiment_root, "ckpt")
+    #step1. Check if the model architecture is autoregressive
     if "opt" in args.model_name_or_path.lower() or "pythia" in args.model_name_or_path.lower() or "mamba" in args.model_name_or_path.lower() or "gpt2" in args.model_name_or_path:
         args.is_autoregressive = True
     else:
@@ -109,5 +118,17 @@ if __name__ == "__main__":
             args=args,
             logger=logger
             )
+    if args.feature_extraction==True:
+        trainset = configure_training_dataset(args=args, tokenizer=tokenizer)
+        
+        train_loader = torch.utils.data.DataLoader(
+            trainset, 
+            shuffle=False, 
+            batch_size=args.train_batch_size, 
+            collate_fn=trainset.collate_fn,
+            #num_workers=2,
+            num_workers=0,
+            pin_memory=True
+        )
     
     
