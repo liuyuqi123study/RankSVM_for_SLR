@@ -7,6 +7,7 @@ import logging
 import json
 from torch.optim import lr_scheduler
 from transformers import AdamW
+import json 
 
 from tqdm import tqdm
 import numpy as np
@@ -17,7 +18,8 @@ from torch.utils.tensorboard import SummaryWriter
 from transformers import AutoTokenizer
 from transformers import AutoModel
 from transformers import AutoConfig
-
+import sys
+sys.path.append('/content/drive/MyDrive/RankSVM_for_SLR/RankMamba')
 from ranking_dataset import LCEDatasetCausalLM, LCEDatasetMaskedLM, LCEDatasetSeq2SeqLM
 from utils import read_ranklist, read_qrels, configure_eval_dataset
 from utils import read_validset
@@ -83,7 +85,7 @@ def configure_model(model_name_or_path, tokenizer, args):
 
     return model
 
-def configure_tokenizer(model_name_or_path):
+def configure_tokenizer(args,model_name_or_path):
     p_prefix, q_prefix = configure_special_tokens(model_name_or_path)
     if "opt" in model_name_or_path.lower() or "mamba" in model_name_or_path.lower() or "pythia" in model_name_or_path.lower():
         tokenizer = AutoTokenizer.from_pretrained(args.tokenizer)
@@ -108,7 +110,7 @@ def configure_special_tokens(model_name_or_path):
     return p_prefix, q_prefix
 
 def configure_model_and_tokenizer(model_name_or_path, args=None):
-    tokenizer = configure_tokenizer(model_name_or_path)
+    tokenizer = configure_tokenizer(args,model_name_or_path)
     model = configure_model(model_name_or_path=model_name_or_path, tokenizer=tokenizer, args=args)
     if not args.is_autoregressive:
         model.base_model.resize_token_embeddings(len(tokenizer))
@@ -175,107 +177,129 @@ def train_classification(
     args,
     logger=None
     ):
-    
-    total_training_steps = min(args.training_steps, len(train_loader)*args.epochs)
-    print(f"total training steps -> {total_training_steps}")
-    save_milestone = total_training_steps // 10
-    model_save_name = args.model_name_or_path.replace("/", "-")
-    warmup_steps = max(args.warmup_steps, int(total_training_steps*args.warmup_ratio))
-    scheduler = get_scheduler(optimizer, args.scheduler, args.warmup_steps, total_training_steps)
+    if args.do_train=='True':
+        total_training_steps = min(args.training_steps, len(train_loader)*args.epochs)
+        print(f"total training steps -> {total_training_steps}")
+        save_milestone = total_training_steps // 10
+        model_save_name = args.model_name_or_path.replace("/", "-")
+        warmup_steps = max(args.warmup_steps, int(total_training_steps*args.warmup_ratio))
+        scheduler = get_scheduler(optimizer, args.scheduler, args.warmup_steps, total_training_steps)
 
 
-    loss_fct = torch.nn.CrossEntropyLoss()
-    writer = SummaryWriter()
+        loss_fct = torch.nn.CrossEntropyLoss()
+        writer = SummaryWriter()
 
-    # check_model_parameters(model)
-    model = nested2device(model, device)
-    model.train()
-    
-    train_steps = 0
-    accumulated_loss = 0.
-    flag = True
-    exp_lr_scheduler = lr_scheduler.StepLR(optimizer, step_size=1, gamma=1)
-    while flag:
-        for epoch_id in range(args.epochs):
-            model.train()
-            current_epoch=epoch_id
-            exp_lr_scheduler.step(current_epoch)
-            if "t5" in model.config._name_or_path or "opt" in model.config._name_or_path or "pythia" in model.config._name_or_path:
-                scaler = torch.cuda.amp.GradScaler(enabled=args.fp16)
-                autocast_dtype = torch.bfloat16
-            else:
-                scaler = torch.cuda.amp.GradScaler(enabled=args.fp16)
-                autocast_dtype = torch.float16
-            for batch_idx, batch in tqdm(enumerate(train_loader), desc=f"training epoch {epoch_id+1}", disable=args.disable_tqdm):
+        # check_model_parameters(model)
+        model = nested2device(model, device)
+        model.train()
         
-                if train_steps > total_training_steps:
-                    flag = False
-                    break
-                with torch.cuda.amp.autocast(dtype=autocast_dtype, enabled=args.fp16):
-                    output = model.forward(
-                        input_ids=batch['inputx'].input_ids.to(device),
-                        attention_mask=batch['inputx'].attention_mask.to(device),
-                    )
-                    
-                    logits=output # by default this is set to 8, but can be changed to 16 as well
-                    labels = batch['labels'].to(logits.device)  # (bz)
-                    loss = loss_fct(logits, labels)
-                accumulated_loss+=loss
-                loss.backward()
-    
-                train_steps+=1
-                optimizer.step()
-                optimizer.zero_grad()  # zero out the accumulated optimizer grad
-                if (train_steps) % 100 == 0:
-                    print(f"\naverage loss -> {accumulated_loss/(train_steps):.2f}")
-
-                
-            if args.do_eval:
-    
-                evalset= configure_training_dataset(args=args, tokenizer=tokenizer,mode='eval')
-
-                model.to(DEVICE)
-                with open("prediction_"+str(args.fold)+'batch_size'+str(args.train_batch_size)+str(epoch_id)+'cand_length'+str(args.cand_length)+'learning_rate_1.json', "w") as fout:
-                    tsv_writer = csv.writer(fout, delimiter=" ")
-                
-                    model.eval()
-                
-                    eval_loader=torch.utils.data.DataLoader(
-                evalset, 
-                shuffle=False, 
-                batch_size=args.eval_batch_size, 
-                collate_fn=evalset.collate_fn,
-                #num_workers=2,
-                num_workers=0,
-                pin_memory=True
-            )
-                    res_scores=[]
-                    for batch_idx, batch in tqdm(enumerate(eval_loader), disable=args.disable_tqdm):
-                        batch_scores = get_prediction(tokenizer, model, batch['inputx'], args, DEVICE)
-                        score=torch.softmax(batch_scores,dim=1)
-                        res_scores+=list(zip(batch['index'],score[:,1].tolist()))
+        train_steps = 0
+        accumulated_loss = 0.
+        flag = True
+        exp_lr_scheduler = lr_scheduler.StepLR(optimizer, step_size=1, gamma=1)
+        while flag:
+            for epoch_id in range(args.epochs):
+                model.train()
+                current_epoch=epoch_id
+                exp_lr_scheduler.step(current_epoch)
+                if "t5" in model.config._name_or_path or "opt" in model.config._name_or_path or "pythia" in model.config._name_or_path:
+                    scaler = torch.cuda.amp.GradScaler(enabled=args.fp16)
+                    autocast_dtype = torch.bfloat16
+                else:
+                    scaler = torch.cuda.amp.GradScaler(enabled=args.fp16)
+                    autocast_dtype = torch.float16
+                for batch_idx, batch in tqdm(enumerate(train_loader), desc=f"training epoch {epoch_id+1}", disable=args.disable_tqdm):
             
-                    predictions={}
-                    for res in res_scores:
+                    if train_steps > total_training_steps:
+                        flag = False
+                        break
+                    with torch.cuda.amp.autocast(dtype=autocast_dtype, enabled=args.fp16):
+                        output = model.forward(
+                            input_ids=batch['inputx'].input_ids.to(device),
+                            attention_mask=batch['inputx'].attention_mask.to(device),
+                        )
                         
+                        logits=output # by default this is set to 8, but can be changed to 16 as well
+                        labels = batch['labels'].to(logits.device)  # (bz)
+                        loss = loss_fct(logits, labels)
+                    accumulated_loss+=loss
+                    loss.backward()
         
-                            if res[0][0] not in predictions:
-                                predictions[res[0][0]] = []
-                            predictions[res[0][0]].append((res[0][1], res[1]))
+                    train_steps+=1
+                    optimizer.step()
+                    optimizer.zero_grad()  # zero out the accumulated optimizer grad
+                    if (train_steps) % 100 == 0:
+                        print(f"\naverage loss -> {accumulated_loss/(train_steps):.2f}")
 
-                    for key in predictions:
-                            predictions[key].sort(key = lambda x:x[1], reverse = True)
-                            predictions[key] = [int(res[0]) for res in predictions[key]]
-                    print(json.dumps(predictions),file=fout)
                     
-                fout.close()
+                if args.do_eval:
         
-            #Save the model
-            save_dest = os.path.join(args.save_dest, str(args.fold),f"cand_length_{args.cand_length}_learning_rate_{args.lr}_{model_save_name}_batch_size_{args.train_batch_size}")
-            print(f"saving to {save_dest}")
-            save_model(model=model, save_dest=save_dest)
-            tokenizer.save_pretrained(save_dest)
-        flag=False
+                    evalset= configure_training_dataset(args=args, tokenizer=tokenizer,mode='eval')
+
+                    model.to(DEVICE)
+                    with open("prediction_"+str(args.fold)+'batch_size'+str(args.train_batch_size)+str(epoch_id)+'cand_length'+str(args.cand_length)+'learning_rate_1.json', "w") as fout:
+                        tsv_writer = csv.writer(fout, delimiter=" ")
+                    
+                        model.eval()
+                    
+                        eval_loader=torch.utils.data.DataLoader(
+                    evalset, 
+                    shuffle=False, 
+                    batch_size=args.eval_batch_size, 
+                    collate_fn=evalset.collate_fn,
+                    #num_workers=2,
+                    num_workers=0,
+                    pin_memory=True
+                )
+                        res_scores=[]
+                        for batch_idx, batch in tqdm(enumerate(eval_loader), disable=args.disable_tqdm):
+                            batch_scores = get_prediction(tokenizer, model, batch['inputx'], args, DEVICE)
+                            score=torch.softmax(batch_scores,dim=1)
+                            res_scores+=list(zip(batch['index'],score[:,1].tolist()))
+                
+                        predictions={}
+                        for res in res_scores:
+                            
+            
+                                if res[0][0] not in predictions:
+                                    predictions[res[0][0]] = []
+                                predictions[res[0][0]].append((res[0][1], res[1]))
+
+                        for key in predictions:
+                                predictions[key].sort(key = lambda x:x[1], reverse = True)
+                                predictions[key] = [int(res[0]) for res in predictions[key]]
+                        print(json.dumps(predictions),file=fout)
+                        
+                    fout.close()
+            
+                #Save the model
+                save_dest = os.path.join(args.save_dest, str(args.fold),f"cand_length_{args.cand_length}_learning_rate_{args.lr}_{model_save_name}_batch_size_{args.train_batch_size}")
+                print(f"saving to {save_dest}")
+                save_model(model=model, save_dest=save_dest)
+                tokenizer.save_pretrained(save_dest)
+            flag=False
+    else:
+        print('feature extraction running')
+        evalset= configure_training_dataset(args=args, tokenizer=tokenizer,mode='eval')
+        model.to(device)
+        model.eval()
+        eval_loader=torch.utils.data.DataLoader(
+                    evalset, 
+                    shuffle=False, 
+                    batch_size=args.eval_batch_size, 
+                    collate_fn=evalset.collate_fn,
+                    #num_workers=2,
+                    num_workers=0,
+                    pin_memory=True
+                )
+        for batch_idx, batch in tqdm(enumerate(train_loader), disable=args.disable_tqdm):
+                            batch_scores_train = get_prediction(tokenizer, model, batch['inputx'], args, device)
+                            fout=open('/content/drive/MyDrive/RankSVM_for_SLR/RankMamba/features/feature_extraction_mamba_train'+str(batch_idx)+str(args.fold)+'.json','w')
+                            print(json.dumps(batch_scores_train.cpu().numpy().tolist()),file=fout)
+        for batch_idx, batch in tqdm(enumerate(eval_loader), disable=args.disable_tqdm):
+                            batch_scores_test = get_prediction(tokenizer, model, batch['inputx'], args, device)
+                            fout=open('/content/drive/MyDrive/RankSVM_for_SLR/RankMamba/features/feature_extraction_mamba_test'+str(batch_idx)+str(args.fold)+'.json','w')
+                            print(json.dumps(batch_scores_test.cpu().numpy().tolist()),file=fout)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
