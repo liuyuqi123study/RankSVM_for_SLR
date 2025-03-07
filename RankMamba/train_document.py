@@ -292,6 +292,7 @@ def train_classification(
                     num_workers=0,
                     pin_memory=True
                 )
+  
         for batch_idx, batch in tqdm(enumerate(train_loader), disable=args.disable_tqdm):
                             pooled_output_trains = get_prediction(tokenizer, model, batch['inputx'], args, device,extraction_feature=True).cpu().numpy.tolist()
                             labels=batch['labels']
@@ -301,7 +302,9 @@ def train_classification(
                            
                             contents=[str(label)+' '+'qid:'+str(index[0]+5181)+' '+feature+'#'+str(index[1]) for(label, index,feature) in zip(labels,indexes,features)]
                             with open('train'+str(args.fold)+'.dat', 'a') as file:
-                                json.dump(contents, file)
+                                for content in contents:
+                                    json.dump(content, file)
+                                    file.write('\n')
         for batch_idx, batch in tqdm(enumerate(eval_loader), disable=args.disable_tqdm):
                             pooled_output_tests = get_prediction(tokenizer, model, batch['inputx'], args, device,extraction_feature=True).cpu().numpy.tolist()
                             labels=batch['labels']
@@ -309,9 +312,11 @@ def train_classification(
                             features=[' '.join([str(ind)+':'+str(value) for (ind,value) in enumerate(pooled_output_test)]) for pooled_output_test in pooled_output_tests]
         
                            
-                            contents+=[[str(label)+' '+'qid:'+str(index[0]+5181)+' '+feature+'#'+str(index[1])] for(label, index,feature) in zip(labels,indexes,features)]
-                            with open('train'+str(args.fold)+'.dat', 'a') as file:
-                                json.dump(contents, file)
+                            contents=[str(label)+' '+'qid:'+str(index[0]+5181)+' '+feature+'#'+str(index[1]) for(label, index,feature) in zip(labels,indexes,features)]
+                            with open('test'+str(args.fold)+'.dat', 'a') as file:
+                                for content in contents:
+                                    json.dump(content, file)
+                                    file.write('\n')
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
