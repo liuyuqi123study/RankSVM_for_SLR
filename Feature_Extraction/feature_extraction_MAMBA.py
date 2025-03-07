@@ -2,6 +2,8 @@ import argparse
 import logging
 import os 
 import torch
+import sys
+sys.path.append('/content/drive/MyDrive/RankSVM_for_SLR')
 from RankMamba.train_document import configure_model_and_tokenizer
 from RankMamba.train_document import print_trainable_parameters
 from RankMamba.train_document import load_from_trained
@@ -16,7 +18,7 @@ if __name__ == "__main__":
     parser.add_argument("--tokenizer", type=str, required=True)
     parser.add_argument("--t5_encoder", action="store_true", help="specify if using T5EncoderModel")
 
-    parser.add_argument("--load_from_trained", action="store_true", help="declare if we load from existing checkpoint")
+    parser.add_argument("--load_from_trained", default='True', help="declare if we load from existing checkpoint")
     parser.add_argument("--model_ckpt", type=str, help="use pytorch.bin if autoregressive model")
 
     parser.add_argument("--input_dir", type=str, default="/home/zhichao/msmarco_document")
@@ -51,13 +53,13 @@ if __name__ == "__main__":
     parser.add_argument('--warmup_ratio', type=float, default=0.1)
     parser.add_argument('--cand_length', type=int, default=400)
     parser.add_argument('--query_length', type=int, default=110)
-    parser.add_argument('--do_train', action='store_true')
+    parser.add_argument('--do_train', default=True,type=bool)
     parser.add_argument('--do_eval', action='store_true')
     parser.add_argument('--disable_tqdm', action='store_true')
     parser.add_argument('--eval_dataset', type=str, help="choose from dev, dl19, dl20, separate with comma")
     parser.add_argument('--eval_batch_size', type=int, default=128)
     parser.add_argument('--ranklist', type=str, default='firstp.run')
-
+    parser.add_argument('--feature_extraction',type=bool)
     parser.add_argument('--logger', type=str, default="default_logging.log")
 
     args = parser.parse_args()
@@ -91,8 +93,9 @@ if __name__ == "__main__":
         print(f"loaded model ckpt from {args.model_ckpt}")
 
     # prepare document collection
-    
-    if args.do_train:
+
+    if args.do_train=='True':
+        print('start training')
         trainset = configure_training_dataset(args=args, tokenizer=tokenizer)
         
         train_loader = torch.utils.data.DataLoader(
@@ -119,6 +122,7 @@ if __name__ == "__main__":
             logger=logger
             )
     if args.feature_extraction==True:
+        print('start feature extraction')
         trainset = configure_training_dataset(args=args, tokenizer=tokenizer)
         
         train_loader = torch.utils.data.DataLoader(
@@ -130,5 +134,17 @@ if __name__ == "__main__":
             num_workers=0,
             pin_memory=True
         )
-    
+        optimizer = optimizer = AdamW(model.parameters(), lr=1e-5,
+                             weight_decay=0)
+
+        # start training
+        train_classification(
+            tokenizer=tokenizer, 
+            model=model, 
+            train_loader=train_loader, 
+            device=DEVICE, 
+            optimizer=optimizer, 
+            args=args,
+            logger=logger
+            )
     
