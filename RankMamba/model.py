@@ -258,7 +258,8 @@ class SequenceRegressionModel(torch.nn.Module):
     def forward(
         self,
         input_ids,
-        attention_mask
+        attention_mask,
+        extraction_feature=False
         ):
         
         outputs = self.base_model(
@@ -266,8 +267,11 @@ class SequenceRegressionModel(torch.nn.Module):
             attention_mask=attention_mask,
             return_dict=True
         )
+
         pooled_output = pooling(outputs, attention_mask, self.args.pooling_method) # (bx, dim)
         logits = self.regressor.forward(pooled_output.to(self.regressor.classifier.weight.dtype))
+        if extraction_feature==True:
+            return pooled_output
         return logits
 
 class T5RegressionModel(torch.nn.Module):

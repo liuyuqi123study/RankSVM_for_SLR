@@ -136,14 +136,14 @@ def get_scheduler(optimizer, scheduler: str, warmup_steps: int, t_total: int):
         from transformers import get_constant_schedule_with_warmup
         return get_constant_schedule_with_warmup(optimizer, num_warmup_steps=warmup_steps)
 
-def get_prediction(tokenizer, model, batch_input, args, device):
+def get_prediction(tokenizer, model, batch_input, args, device, extraction_feature=False):
     #assert isinstance(batch_input, list), 'wrong input type, force exit!'
     #tokenized_input = format_test_batch(batch_input, tokenizer, args.is_autoregressive)
     model = nested2device(model, device)
     model = model.half()
 
     with torch.no_grad():
-        logits = model.forward(input_ids=batch_input.input_ids.to(device), attention_mask=batch_input.attention_mask.to(device))
+        logits = model.forward(input_ids=batch_input.input_ids.to(device), attention_mask=batch_input.attention_mask.to(device),extraction_feature=extraction_feature)
     
     return logits
 def format_test_batch(batch, tokenizer, is_autoregressive=True):
@@ -293,13 +293,25 @@ def train_classification(
                     pin_memory=True
                 )
         for batch_idx, batch in tqdm(enumerate(train_loader), disable=args.disable_tqdm):
-                            batch_scores_train = get_prediction(tokenizer, model, batch['inputx'], args, device)
-                            fout=open('/content/drive/MyDrive/RankSVM_for_SLR/RankMamba/features/feature_extraction_mamba_train'+str(batch_idx)+str(args.fold)+'.json','w')
-                            print(json.dumps(batch_scores_train.cpu().numpy().tolist()),file=fout)
+                            pooled_output_trains = get_prediction(tokenizer, model, batch['inputx'], args, device,extraction_feature=True).cpu().numpy.tolist()
+                            labels=batch['labels']
+                            indexes=batch['index']
+                            features=[' '.join([str(ind)+':'+str(value) for (ind,value) in enumerate(pooled_output_train)]) for pooled_output_train in pooled_output_trains]
+        
+                           
+                            contents=[str(label)+' '+'qid:'+str(index[0]+5181)+' '+feature+'#'+str(index[1]) for(label, index,feature) in zip(labels,indexes,features)]
+                            with open('train'+str(args.fold)+'.dat', 'a') as file:
+                                json.dump(contents, file)
         for batch_idx, batch in tqdm(enumerate(eval_loader), disable=args.disable_tqdm):
-                            batch_scores_test = get_prediction(tokenizer, model, batch['inputx'], args, device)
-                            fout=open('/content/drive/MyDrive/RankSVM_for_SLR/RankMamba/features/feature_extraction_mamba_test'+str(batch_idx)+str(args.fold)+'.json','w')
-                            print(json.dumps(batch_scores_test.cpu().numpy().tolist()),file=fout)
+                            pooled_output_tests = get_prediction(tokenizer, model, batch['inputx'], args, device,extraction_feature=True).cpu().numpy.tolist()
+                            labels=batch['labels']
+                            indexes=batch['index']
+                            features=[' '.join([str(ind)+':'+str(value) for (ind,value) in enumerate(pooled_output_test)]) for pooled_output_test in pooled_output_tests]
+        
+                           
+                            contents+=[[str(label)+' '+'qid:'+str(index[0]+5181)+' '+feature+'#'+str(index[1])] for(label, index,feature) in zip(labels,indexes,features)]
+                            with open('train'+str(args.fold)+'.dat', 'a') as file:
+                                json.dump(contents, file)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
