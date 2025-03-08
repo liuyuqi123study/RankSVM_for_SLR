@@ -1,0 +1,10 @@
+svm_rank_learn train_feature0.dat model_0_mamba.dat
+svm_rank_learn train_feature1.dat model_1_mamba.dat
+svm_rank_learn train_feature2.dat model_2_mamba.dat
+svm_rank_learn train_feature3.dat model_3_mamba.dat
+svm_rank_learn train_feature4.dat model_4_mamba.dat
+svm_rank_classify test_feature0.dat model_0_mamba.dat
+svm_rank_classify test_feature1.dat model_1_mamba.dat
+svm_rank_classify test_feature2.dat model_2_mamba.dat
+svm_rank_classify test_feature3.dat model_3_mamba.dat
+svm_rank_classify test_feature4.dat model_4_mamba.dat
