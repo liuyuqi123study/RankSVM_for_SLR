@@ -301,7 +301,7 @@ def train_classification(
         
                            
                             contents=[str(label)+' '+'qid:'+str(index[0]+5181)+' '+feature+'#'+str(index[1]) for(label, index,feature) in zip(labels,indexes,features)]
-                            with open('train'+str(args.fold)+'.dat', 'a') as file:
+                            with open('train_feature'+str(args.fold)+'.dat', 'a') as file:
                                 for content in contents:
                                     json.dump(content, file)
                                     file.write('\n')
@@ -313,7 +313,7 @@ def train_classification(
         
                            
                             contents=[str(label)+' '+'qid:'+str(index[0]+5181)+' '+feature+'#'+str(index[1]) for(label, index,feature) in zip(labels,indexes,features)]
-                            with open('test'+str(args.fold)+'.dat', 'a') as file:
+                            with open('test_feature'+str(args.fold)+'.dat', 'a') as file:
                                 for content in contents:
                                     json.dump(content, file)
                                     file.write('\n')
