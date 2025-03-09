@@ -59,13 +59,9 @@ class Metric:
         fnames = os.listdir(path)
         res = {}
         for fn in fnames:
-            if '.json' in fn and 'cand_length' in fn:
-                fold=fn.split('_')[1].replace('batch','')
-                epoch=int(fn.split('_')[2].replace('size8','').replace('cand',''))
-
-            else:
-                continue
-           
+            #Here we don't need to check which epoch is better
+            fold=fn.split('_')[1].replace('batch','')
+            
             metric = {}
             pred = json.load(open(os.path.join(path, fn)))
             for K in [5, 10, 20, 30]:
@@ -74,12 +70,9 @@ class Metric:
             metric['recall']=self.recall(pred,30)
             metric["MAP"] = self.MAP(pred)
         
-            if fold not in res:
-                 res[fold]={'MAP':0,'Best':-1} 
-            if metric['MAP']>res[fold]['MAP']:
-                 res[fold]=metric
-                 res[fold]['best']=epoch
-        print(res)
+            
+            res[fold]=metric
+        
         overall={}
         for fold in res:
             for key in res[fold]:
@@ -92,6 +85,8 @@ class Metric:
             #print(C)'''
         print("==" * 20)
         print(json.dumps(overall, ensure_ascii=False, sort_keys=True))
+        with open(fn.split('.json')[0]+'results.json', 'w') as json_file:
+            json.dump(overall, json_file)
 
     def recall(self,pred,K):
             sp=0.0
@@ -114,7 +109,7 @@ class Metric:
 
 if __name__ == "__main__":
     met = Metric("./input_data")
-    
+    #We try to get the results of the mamba 
     met.pred_path('RankMamba/Results')
     
     
