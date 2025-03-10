@@ -7,9 +7,10 @@ for i in range(5):
         rows = file.readlines()
         modified_rows=[]
         for row in rows:
-            modified_row=row.strip('"')
-            #We write it into some specific format
-            modified_row=modified_row.split(' ',maxsplit=1)[0][-2]+' '+modified_row.split(' ',maxsplit=1)[1]
+            modified_row=row
+            positions = [i for i, c in enumerate(row) if c == ':'] 
+            for position in positions[1:]:
+                modified_row[i-1]=str(int(modified_row[i-1])+1)
             modified_rows.append(modified_row)
     with open('train_feature'+str(i)+'.dat','w') as file:
         file.writelines(modified_rows)
@@ -19,9 +20,10 @@ for i in range(5):
         rows = file.readlines()
         modified_rows=[]
         for row in rows:
-            modified_row=row.strip('"')
-            #We write it into some specific format
-            modified_row=modified_row.split(' ',maxsplit=1)[0][-2]+' '+modified_row.split(' ',maxsplit=1)[1]
+            modified_row=row
+            positions = [i for i, c in enumerate(row) if c == ':'] 
+            for position in positions[1:]:
+                modified_row[i-1]=str(int(modified_row[i-1])+1)
             modified_rows.append(modified_row)
     with open('test_feature'+str(i)+'.dat','w') as file:
         file.writelines(modified_rows)
