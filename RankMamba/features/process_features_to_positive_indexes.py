@@ -8,9 +8,10 @@ for i in range(5):
         modified_rows=[]
         for row in rows:
             modified_row=row
-            positions = [i for i, c in enumerate(row) if c == ':'] 
-            for position in positions[1:]:
-                modified_row[i-1]=str(int(modified_row[i-1])+1)
+            features=modified_row.split(' ')[2:]
+            features_plus=[str(int(feature.split(':')[0])+1)+':'+feature.split(':')[1] for feature in features]
+                       
+            modified_row= modified_row.replace(modified_row.split(' ',maxsplit=2)[2:][0],'')+" ".join(features_plus)
             modified_rows.append(modified_row)
     with open('train_feature'+str(i)+'.dat','w') as file:
         file.writelines(modified_rows)
@@ -21,9 +22,11 @@ for i in range(5):
         modified_rows=[]
         for row in rows:
             modified_row=row
-            positions = [i for i, c in enumerate(row) if c == ':'] 
-            for position in positions[1:]:
-                modified_row[i-1]=str(int(modified_row[i-1])+1)
+            features=modified_row.split(' ')[2:]
+            features_plus=[str(int(feature.split(':')[0])+1)+':'+feature.split(':')[1] for feature in features]
+                       
+            modified_row= modified_row.replace(modified_row.split(' ',maxsplit=2)[2:][0],'')+" ".join(features_plus)
             modified_rows.append(modified_row)
+
     with open('test_feature'+str(i)+'.dat','w') as file:
         file.writelines(modified_rows)
