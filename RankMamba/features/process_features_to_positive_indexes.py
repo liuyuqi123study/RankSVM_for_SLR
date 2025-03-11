@@ -13,7 +13,7 @@ for i in range(5):
                        
             modified_row= modified_row.replace(modified_row.split(' ',maxsplit=2)[2:][0],'')+" ".join(features_plus)
             modified_rows.append(modified_row)
-    with open('train_feature'+str(i)+'.dat','w') as file:
+    with open('train_feature_modified'+str(i)+'.dat','w') as file:
         file.writelines(modified_rows)
 
     #Then we modify test data
@@ -28,5 +28,5 @@ for i in range(5):
             modified_row= modified_row.replace(modified_row.split(' ',maxsplit=2)[2:][0],'')+" ".join(features_plus)
             modified_rows.append(modified_row)
 
-    with open('test_feature'+str(i)+'.dat','w') as file:
+    with open('test_feature_modified'+str(i)+'.dat','w') as file:
         file.writelines(modified_rows)
