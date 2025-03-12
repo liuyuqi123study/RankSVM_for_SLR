@@ -34,6 +34,7 @@ if __name__=='__main__':
         for line in f:
             if line:
                 js=json.loads(line)
+
                 train_dataset.append(Inputfeature(js['A'],js['B'],js['C'],js['label']))
     with open("/home/zxy/coling/data/lecard/test.json","r") as f:
         for line in f:
@@ -44,6 +45,7 @@ if __name__=='__main__':
     tokenizer=BertTokenizer.from_pretrained(mlm_type)
     collator=Collator(tokenizer)
     batch_cal_loss_func=BatchCalLossFunc(1.0)
+    #This is just based on the BERT baseline model
     model=BertBaselineModel(mlm_type)
     optimizer=get_optimizer(model,learning_rate)
     model=torch.nn.DataParallel(model,device_ids=device_ids)

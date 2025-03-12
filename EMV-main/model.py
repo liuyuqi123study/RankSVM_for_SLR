@@ -4,6 +4,7 @@
 @作者    :周恒
 @版本    :1.0
 @说明    :
+This is the model based on BERT evaluation
 '''
 
 

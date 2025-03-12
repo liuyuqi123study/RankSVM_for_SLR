@@ -125,6 +125,7 @@ class AssembleModel(torch.nn.Module):
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         # batch_size = 0
         a_feature, b_feature, c_feature = None, None, None
+        #How to distinguish different representations
         if self.use_event_represent:
             batch_size, _ = a_event_sequence.shape
             a_feature = self.event_represent_model(a_event_sequence)

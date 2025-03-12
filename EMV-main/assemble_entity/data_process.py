@@ -53,6 +53,7 @@ def data_preprocess(raw_data: Dict[str, Union[str, List[str]]]) -> Inputfeature:
         a["text"],
         b["text"],
         c["text"],
+        #the event list is none
         process_event_list(a["event_list"]),
         process_event_list(b["event_list"]),
         process_event_list(b["event_list"])
