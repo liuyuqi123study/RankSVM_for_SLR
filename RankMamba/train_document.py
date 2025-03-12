@@ -278,7 +278,7 @@ def train_classification(
                 save_model(model=model, save_dest=save_dest)
                 tokenizer.save_pretrained(save_dest)
             flag=False
-    else:
+    elif args.feature_extraction=='True':
         print('feature extraction running')
         evalset= configure_training_dataset(args=args, tokenizer=tokenizer,mode='eval')
         model.to(device)
@@ -294,7 +294,7 @@ def train_classification(
                 )
   
         for batch_idx, batch in tqdm(enumerate(train_loader), disable=args.disable_tqdm):
-                            pooled_output_trains = get_prediction(tokenizer, model, batch['inputx'], args, device,extraction_feature=True).cpu().numpy.tolist()
+                            pooled_output_trains = get_prediction(tokenizer, model, batch['inputx'], args, device,extraction_feature=True).cpu().numpy().tolist()
                             labels=batch['labels']
                             indexes=batch['index']
                             features=[' '.join([str(ind)+':'+str(value) for (ind,value) in enumerate(pooled_output_train)]) for pooled_output_train in pooled_output_trains]
@@ -306,7 +306,7 @@ def train_classification(
                                     json.dump(content, file)
                                     file.write('\n')
         for batch_idx, batch in tqdm(enumerate(eval_loader), disable=args.disable_tqdm):
-                            pooled_output_tests = get_prediction(tokenizer, model, batch['inputx'], args, device,extraction_feature=True).cpu().numpy.tolist()
+                            pooled_output_tests = get_prediction(tokenizer, model, batch['inputx'], args, device,extraction_feature=True).cpu().numpy().tolist()
                             labels=batch['labels']
                             indexes=batch['index']
                             features=[' '.join([str(ind)+':'+str(value) for (ind,value) in enumerate(pooled_output_test)]) for pooled_output_test in pooled_output_tests]
@@ -317,6 +317,45 @@ def train_classification(
                                 for content in contents:
                                     json.dump(content, file)
                                     file.write('\n')
+    elif args.get_score:
+         print('get dataset score running')
+         evalset= configure_training_dataset(args=args, tokenizer=tokenizer,mode='eval')
+         model.to(device)
+         model.eval()
+         eval_loader=torch.utils.data.DataLoader(
+                        evalset, 
+                        shuffle=False, 
+                        batch_size=args.eval_batch_size, 
+                        collate_fn=evalset.collate_fn,
+                        #num_workers=2,
+                        num_workers=0,
+                        pin_memory=True
+                    )
+         with open('train_score_mamba'+str(args.fold)+'.csv', mode='a',newline='') as f:
+                                writer=csv.writer(f)
+                                writer.writerow(['score','qid','cid','label'])
+         for batch_idx, batch in tqdm(enumerate(train_loader), disable=args.disable_tqdm):
+                            batch_scores = get_prediction(tokenizer, model, batch['inputx'], args, device)
+                            score=torch.softmax(batch_scores,dim=1).cpu().numpy()
+                            qids=[qid for (qid,cid) in batch['index']]
+                            cids=[cid for (qid,cid) in batch['index']]
+                            scores=zip(score[:,1],qids,cids,batch['labels'])
+                            with open('train_score_mamba'+str(args.fold)+'.csv', mode='a',newline='') as f:
+                                writer=csv.writer(f)
+                                writer.writerows(scores)
+         with open('test_score_mamba'+str(args.fold)+'.csv', mode='a',newline='') as f:
+                                writer=csv.writer(f)
+                                writer.writerow(['score','qid','cid','label'])
+         for batch_idx, batch in tqdm(enumerate(eval_loader), disable=args.disable_tqdm):
+                            batch_scores = get_prediction(tokenizer, model, batch['inputx'], args, device)
+                            score=torch.softmax(batch_scores,dim=1).cpu().numpy()
+                            qids=[qid for (qid,cid) in batch['index']]
+                            cids=[cid for (qid,cid) in batch['index']]
+                            scores=zip(score[:,1],qids,cids,batch['labels'])
+                            with open('test_score_mamba'+str(args.fold)+'.csv', mode='a',newline='') as f:
+                                writer=csv.writer(f)
+                                writer.writerows(scores)
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -400,6 +439,7 @@ if __name__ == "__main__":
     # prepare document collection
     
     if args.do_train:
+        print('do training')
         trainset = configure_training_dataset(args=args, tokenizer=tokenizer)
         
         train_loader = torch.utils.data.DataLoader(
@@ -425,5 +465,32 @@ if __name__ == "__main__":
             args=args,
             logger=logger
             )
+    elif args.get_score:
+         print('getting score')
+         trainset = configure_training_dataset(args=args, tokenizer=tokenizer)
+        
+         train_loader = torch.utils.data.DataLoader(
+            trainset, 
+            shuffle=False, 
+            batch_size=args.train_batch_size, 
+            collate_fn=trainset.collate_fn,
+            #num_workers=2,
+            num_workers=0,
+            pin_memory=True
+        )
+         optimizer = optimizer = AdamW(model.parameters(), lr=1e-5,
+                             weight_decay=0)
+
+        # start training
+         train_classification(
+            tokenizer=tokenizer, 
+            model=model, 
+            train_loader=train_loader, 
+            device=DEVICE, 
+            optimizer=optimizer, 
+            args=args,
+            logger=logger
+            )
+    
     
     

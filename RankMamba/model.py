@@ -272,6 +272,7 @@ class SequenceRegressionModel(torch.nn.Module):
         logits = self.regressor.forward(pooled_output.to(self.regressor.classifier.weight.dtype))
         if extraction_feature==True:
             return pooled_output
+        
         return logits
 
 class T5RegressionModel(torch.nn.Module):
