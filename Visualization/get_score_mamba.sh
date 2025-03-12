@@ -1,0 +1,16 @@
+CUDA_VISIBLE_DEVICES=0 python get_score_MAMBA.py \
+--cand_length 500 \
+--query_length 200 \
+--load_from_trained True \
+--train_batch_size 16 \
+--eval_batch_size 16 \
+--model_ckpt ckpt/0/cand_length_500_learning_rate_2e-5_state-spaces-mamba-130m-hf_batch_size_16/pytorch_model.bin \
+--do_train False \
+--feature_extraction True \
+--get_score True \
+--fold 0 \
+--model_name_or_path state-spaces/mamba-130m-hf \
+--tokenizer state-spaces/mamba-130m-hf \
+--triples dataset.csv \
+--input_dir /content/drive/MyDrive/LEVEN-main/Downstreams/SCR/SCR-Experiment/input_data \
+--eval_dataset dev, 

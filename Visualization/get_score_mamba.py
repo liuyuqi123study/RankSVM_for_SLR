@@ -124,7 +124,7 @@ if __name__ == "__main__":
             logger=logger
             )
     if args.get_score==True:
-        print('start feature extraction')
+        print('start score generating')
         trainset = configure_training_dataset(args=args, tokenizer=tokenizer)
         
         train_loader = torch.utils.data.DataLoader(
