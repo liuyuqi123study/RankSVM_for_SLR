@@ -1,1 +1,2 @@
 ./svm_rank_classify /Users/yuqi/Downloads/RankSVM_for_SLR/RankMamba/features/train_feature_modified0.dat /Users/yuqi/Downloads/RankSVM_for_SLR/RankMamba/features/model_0_mamba_1.dat /Users/yuqi/Downloads/RankSVM_for_SLR/RankMamba/features/predictions_0_1_train.dat
+./svm_rank_classify /Users/yuqi/Downloads/RankSVM_for_SLR/RankMamba/features/test_feature_modified0.dat /Users/yuqi/Downloads/RankSVM_for_SLR/RankMamba/features/model_0_mamba_1.dat /Users/yuqi/Downloads/RankSVM_for_SLR/RankMamba/features/predictions_0_1_test.dat
