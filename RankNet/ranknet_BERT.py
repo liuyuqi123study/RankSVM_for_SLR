@@ -1,6 +1,7 @@
 import argparse
 import os
 import torch
+import json
 import logging
 #import torchvision
 from torch.autograd import Variable
@@ -20,128 +21,92 @@ def set_seed(seed):
     torch.cuda.manual_seed(seed)
     torch.cuda.manual_seed_all(seed)
 
-parser = argparse.ArgumentParser()#在这里进行参数的传递
-parser.add_argument('--config', '-c', help="specific config file", required=True)
-parser.add_argument('--gpu', '-g', help="gpu id list")
-parser.add_argument('--checkpoint', help="checkpoint file path")
-parser.add_argument('--local_rank', type=int, help='local rank', default=-1)
-parser.add_argument('--do_test', help="do test while training or not", action="store_true")
-parser.add_argument('--comment', help="checkpoint file path", default=None)
-parser.add_argument('--test_file', default=None)
-parser.add_argument("--seed", default=2333)#这些都是可选的参数
-args = parser.parse_args()
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()#在这里进行参数的传递
 
-configFilePath = args.config
+    parser.add_argument
+    parser.add_argument('--config', '-c', help="specific config file", required=True)
+    parser.add_argument('--gpu', '-g', help="gpu id list")
+    parser.add_argument('--checkpoint', help="checkpoint file path")
+    parser.add_argument('--local_rank', type=int, help='local rank', default=-1)
+    parser.add_argument('--do_test', help="do test while training or not", action="store_true")
+    parser.add_argument('--comment', help="checkpoint file path", default=None)
+    parser.add_argument('--test_file', default=None)
+    parser.add_argument("--seed", default=2333)#这些都是可选的参数
+    args = parser.parse_args()
 
-config = create_config(configFilePath)
+    configFilePath = args.config
+
+    config = create_config(configFilePath)
+        
+    if not args.test_file is None:
+            config.set("data", "test_file", args.test_file)
+    set_seed(args.seed)
+
+    use_gpu = True
+    gpu_list = []
+    if args.gpu is None:
+            use_gpu = False
+    else:
+            use_gpu = True
+            os.environ["CUDA_VISIBLE_DEVICES"] = args.gpu
+
+            device_list = args.gpu.split(",")
+            for a in range(0, len(device_list)):
+                gpu_list.append(int(a))
+
+    os.system("clear")
+    # We just need to load the dataset
+
+    from tools.init_tool import init_all
+    #First step: Initializing the dataset
+    para = init_all(config, gpu_list, checkpoint=None, mode="train", local_rank = args.local_rank)
+    dataset=para['train_dataset']
+    acc_result = {'right': 0, 'actual_num': 0, 'pre_num': 0}
     
-if not args.test_file is None:
-        config.set("data", "test_file", args.test_file)
-set_seed(args.seed)
+    #We need to load features from .json file
+    #second step: load the feature file
+    train_features=[]
+    train_labels=[]
+    train_indexes=[]
 
-use_gpu = True
-gpu_list = []
-if args.gpu is None:
-        use_gpu = False
-else:
-        use_gpu = True
-        os.environ["CUDA_VISIBLE_DEVICES"] = args.gpu
+    test_features=[]
+    test_labels=[]
+    test_indexes=[]
 
-        device_list = args.gpu.split(",")
-        for a in range(0, len(device_list)):
-            gpu_list.append(int(a))
-
-os.system("clear")
-#config.set('distributed', 'local_rank', args.local_rank)
-#if config.getboolean("distributed", "use"):
-#        torch.cuda.set_device(gpu_list[args.local_rank])
- #       torch.distributed.init_process_group(backend=config.get("distributed", "backend"))
- #       config.set('distributed', 'gpu_num', len(gpu_list))
-
-logger = logging.getLogger(__name__)
-logger.info("Begin to initialize models...")
-
-model = get_model(config.get("model", "model_name"))(config, gpu_list,  local_rank = -1)
-
-checkpoint="/content/input/model/0.pkl"
-if len(gpu_list) > 0:
-    
-        if args.local_rank<0:
-            model = model.cuda()
-        else:
-            model = model.to(gpu_list[args.local_rank])
-        #try:
-            # model = nn.parallel.DistributedDataParallel(model, device_ids=[params['local_rank']])
-            #model.init_multi_gpu(gpu_list, config, *args, )
-       # except Exception as e:
-            #logger.warning("No init_multi_gpu implemented in the model, use single gpu instead.")
-
-try:
-        parameters = torch.load(checkpoint, map_location=lambda storage, loc: storage)
-        if hasattr(model, 'module'):
-            model.module.load_state_dict(parameters["model"])
-        else:
-            model.load_state_dict(parameters["model"])
-except Exception as e:
-        information = "Cannot load checkpoint file with error %s" % str(e)
-        logger.warning(information)
-if torch.backends.mps.is_available():
-                           model=model.to('mps')
-model.cuda()
-
-activation={}
-def get_activation(name):
-      def hook(model,input,output):
-            activation[name]=output.pooler_output.detach()
-      return hook
-#首先要进行前向传播
-#在这里将数据集进行初始化
-
-from tools.init_tool import init_all
-para = init_all(config, gpu_list, checkpoint, "train", local_rank = args.local_rank)
-model.encoder.register_forward_hook(get_activation('encoder'))
-dataset=para['train_dataset']
-acc_result = {'right': 0, 'actual_num': 0, 'pre_num': 0}
-for step, data in enumerate(dataset):
-    #if step<=46:
-     #       continue
-    for key in data.keys():
-        if key!='index' and data[key]!=None:
-         if torch.backends.mps.is_available():
-                                data[key] = Variable(data[key].to('mps'))
-         else:
+    repository_path=config.get("data","feature_path")
+    for file_name in os.listdir(repository_path):
+        if file_name.endswith('.json'):
             
-            if len(gpu_list) > 0:
-                        data[key] = Variable(data[key].cuda())
+            train_or_test=file_name.split('_')[3]
+            if train_or_test=='train':
+                  step=file_name.split('_')[5].replace('.json','').replace('testfile1','')
+                  if int(step)>=100:
+                        continue
+                  file_path=os.path.join(repository_path,file_name)
+                  with open(file_path,'r') as f:
+                    data=json.load(f)
+                    features=data['encoder']
+                    labels=data['label']
+                    indexes=data['id']
+
+                    train_features.append(features)
+                    train_labels.append(labels)
+                    train_indexes.append(indexes)
+
             else:
-                        data[key] = Variable(data[key])
-    
-    output=model(data,config,gpu_list,acc_result,'train')
-    activation['encoder']=activation['encoder'].tolist()
-    activation['label']=data['labels'].tolist()
-    activation['id']=data['index']
-    import json
-    fout = open('/content/output/features_BERT_1/v1_feature_extraction_train_epoch4_testfile1'+str(step)+'.json', "w")
-    print(json.dumps(activation), file = fout)
-dataset=para['valid_dataset']
-acc_result = {'right': 0, 'actual_num': 0, 'pre_num': 0}
-for step, data in enumerate(dataset):
-    #if step<=46:
-     #       continue
-    for key in data.keys():
-        if key!='index' and data[key]!=None:
-            if torch.backends.mps.is_available():
-                                data[key] = Variable(data[key].to('mps'))
-            else:
-                 if len(gpu_list) > 0:
-                       data[key] = Variable(data[key].cuda())
-                 else:
-                       data[key] = Variable(data[key])
-    
-    output=model(data,config,gpu_list,acc_result,'train')
-    activation['encoder']=activation['encoder'].tolist()
-    activation['label']=data['labels'].tolist()
-    activation['id']=data['index']
-    import json
-    fout = open('/content/output/features_BERT_1/v1_feature_extraction_test_epoch4_testfile1'+str(step)+'.json', "w")
-    print(json.dumps(activation), file = fout)
+                  step=file_path.split('_')[5].replace('.json','').replace('testfile1','')
+                  if int(step)>=25:
+                        continue
+                  file_path=os.path.join(repository_path,file_name)
+                  with open(file_path,'r') as f:
+                    data=json.load(f)
+                    features=data['encoder']
+                    labels=data['label']
+                    indexes=data['id']
+
+                    test_features.append(features)
+                    test_labels.append(labels)
+                    test_indexes.append(indexes)
+       
+            
