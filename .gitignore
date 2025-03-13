@@ -38,8 +38,9 @@ RankMamba/Visualization
 
 RankMamba/Results
 
-EMV-main/data/lecard
+BERT-Preprocess/input_data
+BERT-Preprocess/output_data-supervised
 
-EMV-main/entity_list&index
+
 
 
