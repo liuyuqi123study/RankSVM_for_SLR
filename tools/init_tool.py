@@ -31,6 +31,8 @@ def init_all(config, gpu_list, checkpoint, mode, *args, **params):
         model= get_model(config.get("model", "model_name"))(config, gpu_list, *args, **params)
     elif config.get('model','model_name')=='RankNet':
         '''with ranknet, everything is more simplified'''
+        model=get_model(config.get("model", "model_name"))(input_size=768)
+        
         return result
     optimizer = init_optimizer(model, config, *args, **params)
     trained_epoch = 0
